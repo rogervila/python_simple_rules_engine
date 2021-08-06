@@ -1,0 +1,2 @@
+[run]
+include = python_simple_rules_engine/**
