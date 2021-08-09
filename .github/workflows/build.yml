@@ -36,6 +36,6 @@ jobs:
           -Dsonar.python.coverage.reportPaths=coverage.xml
           -Dsonar.sources=.
           -Dsonar.exclusions="tests/**,setup.py"
-          -Dsonar.test.exclusions="tests/**,setup.py"
+          -Dsonar.test.exclusions="setup.py"
           -Dsonar.tests=tests/
           -Dsonar.verbose=true
