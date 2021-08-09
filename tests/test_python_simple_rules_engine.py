@@ -1,16 +1,14 @@
 import re
 import unittest
 from random import shuffle
-import python_simple_rules_engine
-from python_simple_rules_engine import AbstractRule, Evaluation
+from python_simple_rules_engine import AbstractRule, Evaluation, run
 
 
 class test_python_simple_rules_engine(unittest.TestCase):
     def test_raises_value_error_if_list_contains_something_else_than_a_rule(self):
         with self.assertRaises(ValueError):
             rules = ['not a rule']
-
-            python_simple_rules_engine.run('the subject', rules)
+            run('the subject', rules)
 
     def test_returns_evaluation_with_result(self):
         class TestRule(AbstractRule):
@@ -18,10 +16,16 @@ class test_python_simple_rules_engine(unittest.TestCase):
                 return Evaluation({'result': 'whatever'})
 
         rules = [TestRule()]
-        evaluation = python_simple_rules_engine.run('the subject', rules)
+        evaluation = run('the subject', rules)
 
         self.assertTrue(isinstance(evaluation, Evaluation))
         self.assertEqual(evaluation.result, 'whatever')
+
+    def test_returns_none_if_rules_list_is_empty(self):
+        rules = []
+        evaluation = run('the subject', rules)
+
+        self.assertIsNone(evaluation)
 
     def test_stops_when_defined(self):
         class StopRule(AbstractRule):
@@ -33,7 +37,7 @@ class test_python_simple_rules_engine(unittest.TestCase):
                 return Evaluation({'stop': False, 'result': 'never reached'})
 
         rules = [StopRule(), NeverReachedRule()]
-        evaluation = python_simple_rules_engine.run('the subject', rules)
+        evaluation = run('the subject', rules)
 
         self.assertEqual(
             evaluation.rule.__class__.__name__,
@@ -46,7 +50,7 @@ class test_python_simple_rules_engine(unittest.TestCase):
                 return Evaluation({'extra': {'foo': 'bar'}})
 
         rules = [TestRule()]
-        evaluation = python_simple_rules_engine.run('the subject', rules)
+        evaluation = run('the subject', rules)
 
         self.assertEqual(evaluation.extra['foo'], 'bar')
 
@@ -103,15 +107,15 @@ class test_python_simple_rules_engine(unittest.TestCase):
             shuffle(rules)
             # print([rule.__class__.__name__ for rule in rules])
 
-            evaluation = python_simple_rules_engine.run(amex, rules)
+            evaluation = run(amex, rules)
             self.assertEqual(evaluation.result, 'amex')
             self.assertEqual(evaluation.rule.__class__.__name__, 'AmexRule')
 
-            evaluation = python_simple_rules_engine.run(visa, rules)
+            evaluation = run(visa, rules)
             self.assertEqual(evaluation.result, 'visa')
             self.assertEqual(evaluation.rule.__class__.__name__, 'VisaRule')
 
-            evaluation = python_simple_rules_engine.run(mastercard, rules)
+            evaluation = run(mastercard, rules)
             self.assertEqual(evaluation.result, 'mastercard')
             self.assertEqual(evaluation.rule.__class__.__name__, 'MasterCardRule')  # nopep8
 
@@ -167,7 +171,7 @@ class test_python_simple_rules_engine(unittest.TestCase):
         for _ in range(10):
             shuffle(rules)
 
-            evaluation = python_simple_rules_engine.run(frog, rules)
+            evaluation = run(frog, rules)
 
             self.assertEqual(evaluation.result, 'frog')
             self.assertEqual(
@@ -175,12 +179,51 @@ class test_python_simple_rules_engine(unittest.TestCase):
                 rules[1].__class__.__name__
             )
 
-            evaluation = python_simple_rules_engine.run(bird, rules)
+            evaluation = run(bird, rules)
             self.assertEqual(evaluation.result, 'bird')
             self.assertEqual(
                 evaluation.rule.__class__.__name__,
                 rules[1].__class__.__name__
             )
+
+    def test_evaluation_with_history(self):
+        class RuleA(AbstractRule):
+            def evaluate(self, subject, previous_evaluation: Evaluation = None) -> Evaluation:
+                return Evaluation({'stop': False, 'result': 'a'})
+
+        class RuleB(AbstractRule):
+            def evaluate(self, subject, previous_evaluation: Evaluation = None) -> Evaluation:
+                return Evaluation({'stop': False, 'result': 'b'})
+
+        class RuleC(AbstractRule):
+            def evaluate(self, subject, previous_evaluation: Evaluation = None) -> Evaluation:
+                return Evaluation({'stop': False, 'result': 'c'})
+
+        rules = [RuleA(), RuleB(), RuleC()]
+
+        evaluation = run('the subject', rules, with_history=True)
+
+        self.assertEqual(len(evaluation.history), 2)
+
+        self.assertEqual(
+            evaluation.history[0].rule.__class__.__name__,
+            'RuleA'
+        )
+        self.assertEqual(
+            evaluation.history[0].result,
+            'a'
+        )
+        self.assertEqual(len(evaluation.history[0].history), 0)
+
+        self.assertEqual(
+            evaluation.history[1].rule.__class__.__name__,
+            'RuleB'
+        )
+        self.assertEqual(
+            evaluation.history[1].result,
+            'b'
+        )
+        self.assertEqual(len(evaluation.history[1].history), 0)
 
 
 if __name__ == '__main__':

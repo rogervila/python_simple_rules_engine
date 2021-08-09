@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import abc
+from copy import deepcopy
 from typing import Any, Optional
 
 
@@ -16,6 +17,7 @@ class Evaluation(AbstractData):
     stop = False  # type: bool
     result = None  # type: Any
     extra = {}  # type: dict
+    history = []  # type: list
 
 
 class AbstractRule(abc.ABC):
@@ -23,15 +25,21 @@ class AbstractRule(abc.ABC):
         raise NotImplementedError
 
 
-def run(subject, rules: list = []) -> Optional[Evaluation]:
+def run(subject, rules: list = [], with_history: bool = False) -> Optional[Evaluation]:
     evaluation = None
 
-    for rule in rules:
+    for i, rule in enumerate(rules):
         if not isinstance(rule, AbstractRule):
             raise ValueError
 
-        evaluation = rule.evaluate(subject, evaluation)
+        previous_evaluation = deepcopy(evaluation)
+
+        evaluation = rule.evaluate(subject, previous_evaluation)
         evaluation.rule = rule
+
+        if i > 0 and with_history:
+            previous_evaluation.history = []
+            evaluation.history.append(previous_evaluation)
 
         if evaluation.stop:
             break
