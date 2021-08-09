@@ -11,15 +11,19 @@ class test_python_simple_rules_engine(unittest.TestCase):
             run('the subject', rules)
 
     def test_returns_evaluation_with_result(self):
-        class TestRule(AbstractRule):
+        class FooRule(AbstractRule):
             def evaluate(self, subject, previous_evaluation: Evaluation = None) -> Evaluation:
-                return Evaluation({'result': 'whatever'})
+                return Evaluation({'result': (subject == 'foo')})
 
-        rules = [TestRule()]
-        evaluation = run('the subject', rules)
+        rules = [FooRule()]
 
+        evaluation = run('foo', rules)
         self.assertTrue(isinstance(evaluation, Evaluation))
-        self.assertEqual(evaluation.result, 'whatever')
+        self.assertTrue(evaluation.result)
+
+        evaluation = run('bar', rules)
+        self.assertTrue(isinstance(evaluation, Evaluation))
+        self.assertFalse(evaluation.result)
 
     def test_returns_none_if_rules_list_is_empty(self):
         rules = []
@@ -119,7 +123,7 @@ class test_python_simple_rules_engine(unittest.TestCase):
             self.assertEqual(evaluation.result, 'mastercard')
             self.assertEqual(evaluation.rule.__class__.__name__, 'MasterCardRule')  # nopep8
 
-    def test_example_with_assert_facts(self):
+    def test_facts_example(self):
         class Animal():
             def __init__(self, eats, lives, color):
                 self.eats = eats
