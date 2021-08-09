@@ -33,7 +33,7 @@ jobs:
           -Dsonar.projectKey=rogervila_python_simple_rules_engine
           -Dsonar.python.coverage.reportPaths=coverage.xml
           -Dsonar.sources=.
-          -Dsonar.exclusions="tests/**, setup.py"
-          -Dsonar.test.exclusions="tests/**, setup.py"
+          -Dsonar.exclusions="tests/**,setup.py"
+          -Dsonar.test.exclusions="tests/**,setup.py"
           -Dsonar.tests=tests/
           -Dsonar.verbose=true
