@@ -22,7 +22,7 @@ jobs:
         python -m pip install --upgrade pip
         sh test.sh
     - name: SonarCloud Scan
-      if: ${{ python-version == '3.9'}}
+      if: ${{ matrix.python-version == '3.9'}}
       uses: sonarsource/sonarcloud-github-action@master
       env:
         GITHUB_TOKEN: ${{ secrets.SONAR_GITHUB_TOKEN }}
