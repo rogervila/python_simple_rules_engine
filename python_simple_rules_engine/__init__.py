@@ -11,32 +11,29 @@ class AbstractData(abc.ABC):
                 setattr(self, key, value)
 
 
-class AbstractSubject(abc.ABC):
-    pass
-
-
 class Evaluation(AbstractData):
     rule = None  # type: AbstractRule
     stop = False  # type: bool
     result = None  # type: Any
+    extra = {}  # type: dict
 
 
 class AbstractRule(abc.ABC):
-    def evaluate(self, subject: AbstractSubject) -> Evaluation:
+    def evaluate(self, subject, previous_evaluation: Evaluation = None) -> Evaluation:
         raise NotImplementedError
 
 
-def run(subject: AbstractSubject, rules: list) -> Optional[Evaluation]:
+def run(subject, rules: list = []) -> Optional[Evaluation]:
     evaluation = None
 
     for rule in rules:
         if not isinstance(rule, AbstractRule):
             raise ValueError
 
-        evaluation = rule.evaluate(subject)
+        evaluation = rule.evaluate(subject, evaluation)
+        evaluation.rule = rule
 
         if evaluation.stop:
-            evaluation.rule = rule
             break
 
     return evaluation
