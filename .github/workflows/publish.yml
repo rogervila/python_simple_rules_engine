@@ -1,12 +1,10 @@
 name: publish
 
-on:
-  push:
-    tags:
+on: push
 
 jobs:
   publish:
-    # if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
 
     runs-on: ubuntu-latest
 
@@ -31,7 +29,7 @@ jobs:
         python -m pip install --user wheel twine -U
         echo 'Current version:'
         echo ${{ steps.get_version.outputs.VERSION }}
-        sed -ri -e 's!CURRENT_VERSION!${{ steps.get_version.outputs.VERSION }}!g' /etc/apache2/sites-available/*.conf
+        sed -ri -e 's!CURRENT_VERSION!${{ steps.get_version.outputs.VERSION }}!g' setup.py
         cat setup.py
 
 #python setup.py sdist
