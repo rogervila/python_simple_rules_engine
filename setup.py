@@ -6,7 +6,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 setup(
     name='python_simple_rules_engine',
     packages=['python_simple_rules_engine'],
-    version='1.0.0',
+    version='CURRENT_VERSION',
     license='MIT',
     description='Evaluate rules based on a subject',
     long_description=long_description,
@@ -14,7 +14,7 @@ setup(
     author='Roger Vilà',
     author_email='rogervila@me.com',
     url='https://github.com/rogervila/python_simple_rules_engine',
-    download_url='https://github.com/rogervila/python_simple_rules_engine/archive/1.0.0.tar.gz',
+    download_url='https://github.com/rogervila/python_simple_rules_engine/archive/CURRENT_VERSION.tar.gz',
     keywords=['python rules engine'],
     install_requires=[],
     classifiers=[
