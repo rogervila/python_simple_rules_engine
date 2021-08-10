@@ -26,10 +26,13 @@ jobs:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
       run: |
-        python -m pip install --user wheel twine -U
+        python -m pip install --user wheel twine setuptools -U
+        rm -rf dist
+        rm -rf build
         echo 'Current version:'
         echo ${{ steps.get_version.outputs.VERSION }}
         sed -ri -e 's!CURRENT_VERSION!${{ steps.get_version.outputs.VERSION }}!g' setup.py
         cat setup.py
-        python setup.py sdist
+        python setup.py sdist bdist_wheel
+        twine check dist/*
         twine upload dist/*
