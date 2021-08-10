@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
-pip install coverage
-pip install memory_profiler
+pip install --user coverage -U
+pip install --user memory_profiler -U
 
 coverage run -m unittest discover || exit 1
 coverage xml -i || exit 1
