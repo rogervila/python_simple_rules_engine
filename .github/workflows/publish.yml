@@ -31,6 +31,5 @@ jobs:
         echo ${{ steps.get_version.outputs.VERSION }}
         sed -ri -e 's!CURRENT_VERSION!${{ steps.get_version.outputs.VERSION }}!g' setup.py
         cat setup.py
-
-#python setup.py sdist
-#twine upload dist/*
+        python setup.py sdist
+        twine upload dist/*
