@@ -229,6 +229,30 @@ class test_python_simple_rules_engine(unittest.TestCase):
         )
         self.assertEqual(len(evaluation.history[1].history), 0)
 
+    def test_multiple_subjects(self):
+        class RuleA(AbstractRule):
+            def evaluate(self, subject, previous_evaluation: Evaluation = None) -> Evaluation:
+                return Evaluation({'stop': False, 'result': 'a'})
+
+        class RuleB(AbstractRule):
+            def evaluate(self, subject, previous_evaluation: Evaluation = None) -> Evaluation:
+                return Evaluation({'stop': False, 'result': 'b'})
+
+        class RuleC(AbstractRule):
+            def evaluate(self, subject, previous_evaluation: Evaluation = None) -> Evaluation:
+                return Evaluation({'stop': False, 'result': 'c'})
+
+        rules = [RuleA(), RuleB(), RuleC()]
+        subjects = ['a', 'b', 'c']
+
+        for x, subject in enumerate(subjects):
+            evaluation = run(subject, rules, with_history=True)
+
+            for y, history in enumerate(evaluation.history):
+                print(f'SUBJECT {x} HISTORY {y} RULE: "{history.rule.__class__.__name__}"')  # nopep8
+
+        self.assertTrue(True)
+
 
 if __name__ == '__main__':
     unittest.main()
