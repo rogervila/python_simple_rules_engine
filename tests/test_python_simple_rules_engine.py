@@ -249,7 +249,7 @@ class test_python_simple_rules_engine(unittest.TestCase):
             evaluation = run(subject, rules, with_history=True)
 
             for y, history in enumerate(evaluation.history):
-                print(f'SUBJECT {x} HISTORY {y} RULE: "{history.rule.__class__.__name__}"')  # nopep8
+                print(f'\nSUBJECT {x} HISTORY {y} RULE: "{history.rule.__class__.__name__}"')  # nopep8
 
         self.assertTrue(True)
 
