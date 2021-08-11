@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import abc
-from copy import deepcopy
+from copy import copy
 from typing import Any, Optional
 
 
@@ -32,7 +32,7 @@ def run(subject, rules: list = [], with_history: bool = False) -> Optional[Evalu
         if not isinstance(rule, AbstractRule):
             raise ValueError
 
-        previous_evaluation = deepcopy(evaluation)
+        previous_evaluation = copy(evaluation)
 
         evaluation = rule.evaluate(subject, previous_evaluation)
         evaluation.rule = rule
