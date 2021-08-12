@@ -245,13 +245,23 @@ class test_python_simple_rules_engine(unittest.TestCase):
         rules = [RuleA(), RuleB(), RuleC()]
         subjects = ['a', 'b', 'c']
 
-        for x, subject in enumerate(subjects):
+        for _, subject in enumerate(subjects):
             evaluation = run(subject, rules, with_history=True)
 
-            for y, history in enumerate(evaluation.history):
-                print(f'\nSUBJECT {x} HISTORY {y} RULE: "{history.rule.__class__.__name__}"')  # nopep8
+            self.assertEqual(
+                len(evaluation.history),
+                2
+            )
 
-        self.assertTrue(True)
+            self.assertEqual(
+                evaluation.history[0].rule.__class__.__name__,
+                'RuleA'
+            )
+
+            self.assertEqual(
+                evaluation.history[1].rule.__class__.__name__,
+                'RuleB'
+            )
 
 
 if __name__ == '__main__':

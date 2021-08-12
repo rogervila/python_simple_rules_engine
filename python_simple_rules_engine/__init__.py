@@ -28,6 +28,7 @@ class AbstractRule(abc.ABC):
 def run(subject, rules: list = [], with_history: bool = False) -> Optional[Evaluation]:
     evaluation = None
     previous_evaluation = None
+    history = []
 
     for i, rule in enumerate(rules):
         if not isinstance(rule, AbstractRule):
@@ -35,23 +36,16 @@ def run(subject, rules: list = [], with_history: bool = False) -> Optional[Evalu
 
         previous_evaluation = copy(evaluation)
 
-        print(f'\n---')
-        print(i)
-        print(rule.__class__.__name__)
-        print(previous_evaluation)
-        print(f'---')
-
         evaluation = rule.evaluate(subject, previous_evaluation)
         evaluation.rule = rule
 
-        if i == 0 and with_history:
-            evaluation.history = []
-
         if i > 0 and with_history:
-            previous_evaluation.history = []
-            evaluation.history.append(previous_evaluation)
+            history.append(previous_evaluation)
 
         if evaluation.stop:
             break
+
+    if evaluation is not None:
+        evaluation.history = history
 
     return evaluation
