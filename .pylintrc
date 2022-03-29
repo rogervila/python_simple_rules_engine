@@ -1,0 +1,5 @@
+[MASTER]
+ignore=.github,equipment.egg-info
+
+[MESSAGES CONTROL]
+disable = dangerous-default-value,unnecessary-lambda,broad-except,line-too-long,invalid-name,no-name-in-module,missing-module-docstring,missing-class-docstring,missing-function-docstring,eval-used,bare-except,broad-except,too-few-public-methods,import-outside-toplevel,wildcard-import,unused-wildcard-import,pointless-string-statement

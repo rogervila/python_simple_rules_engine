@@ -16,7 +16,9 @@ setup(
     url='https://github.com/rogervila/python_simple_rules_engine',
     download_url='https://github.com/rogervila/python_simple_rules_engine/archive/CURRENT_VERSION.tar.gz',
     keywords=['python rules engine'],
-    install_requires=[],
+    install_requires=[
+        'py_dto >= 0.4.0'
+    ],
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
