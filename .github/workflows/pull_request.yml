@@ -35,7 +35,7 @@ jobs:
             -Dsonar.organization=rogervila-github
             -Dsonar.projectKey=rogervila_python_simple_rules_engine
             -Dsonar.python.coverage.reportPaths=coverage.xml
-            -Dsonar.python.version=3.10
+            -Dsonar.python.version=3.12
             -Dsonar.sources=.
             -Dsonar.exclusions=tests/**
             -Dsonar.test.exclusions=tests/**
