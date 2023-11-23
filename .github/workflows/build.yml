@@ -10,10 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.5", "3.6", "3.7", "3.8", "3.9", "3.10"]
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Set up Python ${{ matrix.python-version }}
@@ -25,7 +25,7 @@ jobs:
           python -m pip install --upgrade pip
           sh test.sh
       - name: SonarCloud Scan
-        if: ${{ matrix.python-version == '3.10'}}
+        if: ${{ matrix.python-version == '3.12'}}
         uses: sonarsource/sonarcloud-github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.SONAR_GITHUB_TOKEN }}
@@ -35,7 +35,7 @@ jobs:
             -Dsonar.organization=rogervila-github
             -Dsonar.projectKey=rogervila_python_simple_rules_engine
             -Dsonar.python.coverage.reportPaths=coverage.xml
-            -Dsonar.python.version=3.10
+            -Dsonar.python.version=3.12
             -Dsonar.sources=.
             -Dsonar.exclusions=tests/**
             -Dsonar.test.exclusions=tests/**
