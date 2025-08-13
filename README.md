@@ -2,10 +2,8 @@
 
 <p align="center"><img height="200" alt="rogervila/python_simple_rules_engine" src="https://rogervila.es/static/img/python_simple_rules_engine.png" /></p>
 
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=rogervila_python_simple_rules_engine&metric=coverage)](https://sonarcloud.io/dashboard?id=rogervila_python_simple_rules_engine)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=rogervila_python_simple_rules_engine&metric=alert_status)](https://sonarcloud.io/dashboard?id=rogervila_python_simple_rules_engine)
-[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=rogervila_python_simple_rules_engine&metric=sqale_rating)](https://sonarcloud.io/dashboard?id=rogervila_python_simple_rules_engine)
-
+[![PyPI version](https://badge.fury.io/py/python-simple-rules-engine.svg)](https://badge.fury.io/py/python-simple-rules-engine)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/python-simple-rules-engine)
 
 Evaluate rules based on a subject.
 
@@ -50,7 +48,7 @@ print(evaluation.rule) # FooRule instance
 
 ### Advanced usage
 
-When evaluating multiple rules you can retrieve the historic of rules evaluated for a specific evaluation process by passing the `with_history` parameter as `True`.
+When evaluating multiple rules, you can retrieve the historic of rules evaluated for a specific evaluation process by passing the `with_history` parameter as `True`.
 
 The final `Evaluation` object will contain a `history` list with evaluations returned by the rules evaluated during the evaluation process.
 
@@ -71,13 +69,13 @@ print(evaluation.history[1].rule) # RuleB instance
 
 The examples are very simple for demo purposes, but they show the basic features this package comes with.
 
-There is another python rules engine called [durable rules](https://github.com/jruizgit/rules) that comes with some examples. We will recreate them with this package.
+There is another Python rules engine called [durable rules](https://github.com/jruizgit/rules) that comes with some examples. We will recreate them with this package.
 
 ### Pattern matching
 
 Find a credit card type based on its number.
 
-Check `test_match_example_with_cards` method on `tests/test_python_simple_rules_engine.py` for a more detailed implementation.
+Check the `test_match_example_with_cards` method on `tests/test_python_simple_rules_engine.py` for a more detailed implementation.
 
 ```py
 class Card():
@@ -137,7 +135,7 @@ Define the type of an animal based on facts.
 
 In this case, we will compare the current rule result with the previous evaluation result. If they match, we stop the evaluation process.
 
-Check `test_facts_example` method on `tests/test_python_simple_rules_engine.py` for a more detailed implementation.
+Check the `test_facts_example` method on `tests/test_python_simple_rules_engine.py` for a more detailed implementation.
 
 ```py
 class Animal():
