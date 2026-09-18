@@ -31,6 +31,36 @@ class test_python_simple_rules_engine(unittest.TestCase):
 
         self.assertIsNone(evaluation)
 
+    def test_abstract_rule_evaluate_must_be_implemented(self):
+        with self.assertRaises(NotImplementedError):
+            AbstractRule().evaluate('the subject')
+
+    def test_evaluation_uses_defaults_and_ignores_unknown_fields(self):
+        evaluation = Evaluation({'result': 'matched', 'unknown': 'ignored'})
+
+        self.assertEqual(evaluation.result, 'matched')
+        self.assertIsNone(evaluation.rule)
+        self.assertFalse(evaluation.stop)
+        self.assertEqual(evaluation.extra, {})
+        self.assertEqual(evaluation.history, [])
+        self.assertFalse(hasattr(evaluation, 'unknown'))
+
+    def test_evaluation_accepts_all_documented_fields(self):
+        rule = AbstractRule()
+        evaluation = Evaluation({
+            'rule': rule,
+            'stop': True,
+            'result': 'matched',
+            'extra': {'source': 'test'},
+            'history': ['earlier'],
+        })
+
+        self.assertIs(evaluation.rule, rule)
+        self.assertTrue(evaluation.stop)
+        self.assertEqual(evaluation.result, 'matched')
+        self.assertEqual(evaluation.extra, {'source': 'test'})
+        self.assertEqual(evaluation.history, ['earlier'])
+
     def test_stops_when_defined(self):
         class StopRule(AbstractRule):
             def evaluate(self, subject, previous_evaluation: Evaluation = None) -> Evaluation:
@@ -47,6 +77,75 @@ class test_python_simple_rules_engine(unittest.TestCase):
             evaluation.rule.__class__.__name__,
             'StopRule'
         )
+
+    def test_passes_previous_evaluation_to_each_following_rule(self):
+        received_evaluations = []
+
+        class FirstRule(AbstractRule):
+            def evaluate(self, subject, previous_evaluation: Evaluation = None) -> Evaluation:
+                received_evaluations.append(previous_evaluation)
+                return Evaluation({'result': subject})
+
+        class SecondRule(AbstractRule):
+            def evaluate(self, subject, previous_evaluation: Evaluation = None) -> Evaluation:
+                received_evaluations.append(previous_evaluation)
+                return Evaluation({'result': previous_evaluation.result.upper()})
+
+        evaluation = run('first', [FirstRule(), SecondRule()])
+
+        self.assertIsNone(received_evaluations[0])
+        self.assertEqual(received_evaluations[1].result, 'first')
+        self.assertIsInstance(received_evaluations[1].rule, FirstRule)
+        self.assertEqual(evaluation.result, 'FIRST')
+
+    def test_history_is_empty_when_the_first_rule_stops(self):
+        class StopRule(AbstractRule):
+            def evaluate(self, subject, previous_evaluation: Evaluation = None) -> Evaluation:
+                return Evaluation({'stop': True, 'result': subject})
+
+        evaluation = run('the subject', [StopRule()], with_history=True)
+
+        self.assertEqual(evaluation.history, [])
+
+    def test_history_contains_only_rules_evaluated_before_stop(self):
+        class FirstRule(AbstractRule):
+            def evaluate(self, subject, previous_evaluation: Evaluation = None) -> Evaluation:
+                return Evaluation({'result': 'first'})
+
+        class StopRule(AbstractRule):
+            def evaluate(self, subject, previous_evaluation: Evaluation = None) -> Evaluation:
+                return Evaluation({'stop': True, 'result': 'stopped'})
+
+        class NeverReachedRule(AbstractRule):
+            def evaluate(self, subject, previous_evaluation: Evaluation = None) -> Evaluation:
+                self.fail('A stopped evaluation must not run later rules')
+
+        evaluation = run(
+            'the subject',
+            [FirstRule(), StopRule(), NeverReachedRule()],
+            with_history=True,
+        )
+
+        self.assertEqual(evaluation.result, 'stopped')
+        self.assertEqual(len(evaluation.history), 1)
+        self.assertEqual(evaluation.history[0].result, 'first')
+        self.assertIsInstance(evaluation.history[0].rule, FirstRule)
+
+    def test_history_entries_are_shallow_copies(self):
+        extra = {'status': 'initial'}
+
+        class FirstRule(AbstractRule):
+            def evaluate(self, subject, previous_evaluation: Evaluation = None) -> Evaluation:
+                return Evaluation({'result': 'first', 'extra': extra})
+
+        class SecondRule(AbstractRule):
+            def evaluate(self, subject, previous_evaluation: Evaluation = None) -> Evaluation:
+                extra['status'] = 'updated'
+                return Evaluation({'result': 'second'})
+
+        evaluation = run('the subject', [FirstRule(), SecondRule()], with_history=True)
+
+        self.assertEqual(evaluation.history[0].extra, {'status': 'updated'})
 
     def test_evaluation_extra_field(self):
         class TestRule(AbstractRule):
