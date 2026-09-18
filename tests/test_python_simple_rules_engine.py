@@ -98,6 +98,37 @@ class test_python_simple_rules_engine(unittest.TestCase):
         self.assertIsInstance(received_evaluations[1].rule, FirstRule)
         self.assertEqual(evaluation.result, 'FIRST')
 
+    def test_approves_active_accounts_and_denies_inactive_accounts(self):
+        class Account:
+            def __init__(self, has_debt):
+                self.has_debt = has_debt
+
+        class ReadStatusRule(AbstractRule):
+            def evaluate(self, subject, previous_evaluation: Evaluation = None) -> Evaluation:
+                status = 'active' if subject.has_debt is False else 'inactive'
+                return Evaluation({'result': status})
+
+        class ApproveActiveRule(AbstractRule):
+            def evaluate(self, subject, previous_evaluation: Evaluation = None) -> Evaluation:
+                approved = previous_evaluation.result == 'active'
+                return Evaluation({'result': approved, 'stop': approved})
+
+        class DenyInactiveRule(AbstractRule):
+            def evaluate(self, subject, previous_evaluation: Evaluation = None) -> Evaluation:
+                return Evaluation({'result': False, 'stop': True})
+
+        rules = [ReadStatusRule(), ApproveActiveRule(), DenyInactiveRule()]
+
+        approved_evaluation = run(Account(has_debt=False), rules)
+        self.assertTrue(approved_evaluation.result)
+        self.assertTrue(approved_evaluation.stop)
+        self.assertIsInstance(approved_evaluation.rule, ApproveActiveRule)
+
+        denied_evaluation = run(Account(has_debt=True), rules)
+        self.assertFalse(denied_evaluation.result)
+        self.assertTrue(denied_evaluation.stop)
+        self.assertIsInstance(denied_evaluation.rule, DenyInactiveRule)
+
     def test_history_is_empty_when_the_first_rule_stops(self):
         class StopRule(AbstractRule):
             def evaluate(self, subject, previous_evaluation: Evaluation = None) -> Evaluation:
