@@ -717,8 +717,8 @@ class test_python_simple_rules_engine(unittest.TestCase):
     def test_public_classes_are_importable_directly(self):
         from python_simple_rules_engine import AbstractData, AbstractRule, Evaluation, run  # noqa: F401
 
-    def test_python_version_is_at_least_3_9(self):
-        self.assertGreaterEqual(sys.version_info[:2], (3, 9))
+    def test_python_version_is_at_least_3_10(self):
+        self.assertGreaterEqual(sys.version_info[:2], (3, 10))
 
 
 if __name__ == '__main__':

@@ -13,7 +13,7 @@ A small, dependency-free engine for evaluating an ordered sequence of Python rul
 pip install python_simple_rules_engine
 ```
 
-The package supports Python 3.9 and later.
+The package supports Python 3.10 and later.
 
 ## Core Concepts
 
