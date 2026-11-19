@@ -9,3 +9,4 @@ htmlcov/
 MANIFEST
 *lock.*
 .agents/
+.python-version
