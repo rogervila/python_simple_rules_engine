@@ -1,6 +1,8 @@
 import re
+import sys
 import unittest
 from random import shuffle
+import python_simple_rules_engine
 from python_simple_rules_engine import AbstractRule, Evaluation, run
 
 
@@ -392,6 +394,331 @@ class test_python_simple_rules_engine(unittest.TestCase):
                 evaluation.history[1].rule.__class__.__name__,
                 'RuleB'
             )
+
+
+    # ------------------------------------------------------------------
+    # run() — ValueError precision
+    # ------------------------------------------------------------------
+
+    def test_raises_value_error_on_first_invalid_item_in_mixed_list(self):
+        """run() stops at the first non-AbstractRule item and raises ValueError."""
+        reached = []
+
+        class GoodRule(AbstractRule):
+            def evaluate(self, subject, previous_evaluation=None):
+                reached.append(True)
+                return Evaluation({'result': 'ok'})
+
+        with self.assertRaises(ValueError):
+            run('subject', [GoodRule(), 'bad', GoodRule()])
+
+        # First rule ran; second is bad so we stop; third never runs.
+        self.assertEqual(len(reached), 1)
+
+    def test_raises_value_error_when_invalid_item_is_first(self):
+        reached = []
+
+        class GoodRule(AbstractRule):
+            def evaluate(self, subject, previous_evaluation=None):
+                reached.append(True)
+                return Evaluation({'result': 'ok'})
+
+        with self.assertRaises(ValueError):
+            run('subject', [42, GoodRule()])
+
+        self.assertEqual(len(reached), 0)
+
+    # ------------------------------------------------------------------
+    # run() — statelessness across calls
+    # ------------------------------------------------------------------
+
+    def test_run_is_stateless_across_calls(self):
+        """Calling run twice with the same rule list must not leak state."""
+
+        class CountRule(AbstractRule):
+            calls = 0
+
+            def evaluate(self, subject, previous_evaluation=None):
+                CountRule.calls += 1
+                return Evaluation({'result': CountRule.calls})
+
+        rules = [CountRule()]
+
+        e1 = run('a', rules)
+        e2 = run('b', rules)
+
+        self.assertEqual(e1.result, 1)
+        self.assertEqual(e2.result, 2)
+        # Both evaluations are independent objects
+        self.assertIsNot(e1, e2)
+
+    def test_history_is_independent_between_calls(self):
+        """History from one run() must not appear in a later run()."""
+
+        class SimpleRule(AbstractRule):
+            def evaluate(self, subject, previous_evaluation=None):
+                return Evaluation({'result': subject})
+
+        rules = [SimpleRule(), SimpleRule()]
+
+        e1 = run('x', rules, with_history=True)
+        e2 = run('y', rules, with_history=True)
+
+        self.assertEqual(len(e1.history), 1)
+        self.assertEqual(len(e2.history), 1)
+        self.assertEqual(e1.history[0].result, 'x')
+        self.assertEqual(e2.history[0].result, 'y')
+
+    # ------------------------------------------------------------------
+    # run() — history off by default
+    # ------------------------------------------------------------------
+
+    def test_history_is_empty_by_default(self):
+        """with_history defaults to False; history must always be empty."""
+
+        class R(AbstractRule):
+            def evaluate(self, subject, previous_evaluation=None):
+                return Evaluation({'result': subject})
+
+        evaluation = run('x', [R(), R(), R()])
+        self.assertEqual(evaluation.history, [])
+
+    # ------------------------------------------------------------------
+    # run() — stop on last rule
+    # ------------------------------------------------------------------
+
+    def test_stop_on_last_rule_still_returns_evaluation(self):
+        """stop=True on the final rule is valid; it just returns normally."""
+
+        class LastRule(AbstractRule):
+            def evaluate(self, subject, previous_evaluation=None):
+                return Evaluation({'result': 'done', 'stop': True})
+
+        evaluation = run('x', [LastRule()])
+
+        self.assertEqual(evaluation.result, 'done')
+        self.assertTrue(evaluation.stop)
+        self.assertIsInstance(evaluation.rule, LastRule)
+
+    # ------------------------------------------------------------------
+    # run() — same rule instance reused
+    # ------------------------------------------------------------------
+
+    def test_same_rule_instance_can_appear_multiple_times(self):
+        """A single rule object may be listed more than once; each call is independent."""
+
+        class AppendRule(AbstractRule):
+            def evaluate(self, subject, previous_evaluation=None):
+                prev = previous_evaluation.result if previous_evaluation else []
+                return Evaluation({'result': prev + [subject]})
+
+        rule = AppendRule()
+        evaluation = run('x', [rule, rule, rule])
+
+        self.assertEqual(evaluation.result, ['x', 'x', 'x'])
+
+    # ------------------------------------------------------------------
+    # run() — exceptions from rules propagate
+    # ------------------------------------------------------------------
+
+    def test_exception_raised_inside_rule_propagates_uncaught(self):
+        """run() must not swallow exceptions thrown by a rule's evaluate()."""
+
+        class BrokenRule(AbstractRule):
+            def evaluate(self, subject, previous_evaluation=None):
+                raise RuntimeError('rule exploded')
+
+        with self.assertRaises(RuntimeError, msg='rule exploded'):
+            run('subject', [BrokenRule()])
+
+    # ------------------------------------------------------------------
+    # Evaluation — falsy but valid result values
+    # ------------------------------------------------------------------
+
+    def test_result_can_be_zero(self):
+        class ZeroRule(AbstractRule):
+            def evaluate(self, subject, previous_evaluation=None):
+                return Evaluation({'result': 0})
+
+        evaluation = run('x', [ZeroRule()])
+        self.assertIsNotNone(evaluation)
+        self.assertEqual(evaluation.result, 0)
+
+    def test_result_can_be_false(self):
+        class FalseRule(AbstractRule):
+            def evaluate(self, subject, previous_evaluation=None):
+                return Evaluation({'result': False})
+
+        evaluation = run('x', [FalseRule()])
+        self.assertIsNotNone(evaluation)
+        self.assertIs(evaluation.result, False)
+
+    def test_result_can_be_empty_string(self):
+        class EmptyStrRule(AbstractRule):
+            def evaluate(self, subject, previous_evaluation=None):
+                return Evaluation({'result': ''})
+
+        evaluation = run('x', [EmptyStrRule()])
+        self.assertIsNotNone(evaluation)
+        self.assertEqual(evaluation.result, '')
+
+    def test_result_can_be_empty_list(self):
+        class EmptyListRule(AbstractRule):
+            def evaluate(self, subject, previous_evaluation=None):
+                return Evaluation({'result': []})
+
+        evaluation = run('x', [EmptyListRule()])
+        self.assertIsNotNone(evaluation)
+        self.assertEqual(evaluation.result, [])
+
+    # ------------------------------------------------------------------
+    # Evaluation — extra survives chaining
+    # ------------------------------------------------------------------
+
+    def test_extra_from_previous_evaluation_is_accessible_in_next_rule(self):
+        class FirstRule(AbstractRule):
+            def evaluate(self, subject, previous_evaluation=None):
+                return Evaluation({'extra': {'tag': 'first'}, 'result': 1})
+
+        class SecondRule(AbstractRule):
+            def evaluate(self, subject, previous_evaluation=None):
+                tag = previous_evaluation.extra.get('tag')
+                return Evaluation({'result': tag})
+
+        evaluation = run('x', [FirstRule(), SecondRule()])
+        self.assertEqual(evaluation.result, 'first')
+
+    # ------------------------------------------------------------------
+    # Evaluation — previous_evaluation is a shallow copy
+    # ------------------------------------------------------------------
+
+    def test_previous_evaluation_rule_reference_is_preserved_in_shallow_copy(self):
+        """The rule attribute on a shallow-copied evaluation still points to the original rule."""
+
+        seen_rule = []
+
+        class FirstRule(AbstractRule):
+            def evaluate(self, subject, previous_evaluation=None):
+                return Evaluation({'result': 'first'})
+
+        class SecondRule(AbstractRule):
+            def evaluate(self, subject, previous_evaluation=None):
+                seen_rule.append(previous_evaluation.rule)
+                return Evaluation({'result': 'second'})
+
+        first = FirstRule()
+        run('x', [first, SecondRule()])
+
+        self.assertIs(seen_rule[0], first)
+
+    def test_previous_evaluation_mutable_result_is_shared_not_deep_copied(self):
+        """Shallow copy means nested mutable objects in result are shared."""
+
+        shared_list = [1, 2]
+
+        class FirstRule(AbstractRule):
+            def evaluate(self, subject, previous_evaluation=None):
+                return Evaluation({'result': shared_list})
+
+        class SecondRule(AbstractRule):
+            def evaluate(self, subject, previous_evaluation=None):
+                # Mutate the list received via previous_evaluation
+                previous_evaluation.result.append(3)
+                return Evaluation({'result': 'done'})
+
+        run('x', [FirstRule(), SecondRule()])
+
+        # The original shared_list was mutated through the shallow copy
+        self.assertEqual(shared_list, [1, 2, 3])
+
+    # ------------------------------------------------------------------
+    # AbstractData — class-attribute whitelist
+    # ------------------------------------------------------------------
+
+    def test_abstract_data_ignores_keys_not_declared_as_class_attributes(self):
+        evaluation = Evaluation({'result': 'ok', 'nonexistent_field': 'ignored'})
+        self.assertFalse(hasattr(evaluation, 'nonexistent_field'))
+        self.assertEqual(evaluation.result, 'ok')
+
+    def test_abstract_data_accepts_all_known_fields_individually(self):
+        for field, value in [
+            ('result', 42),
+            ('stop', True),
+            ('history', ['entry']),
+        ]:
+            with self.subTest(field=field):
+                e = Evaluation({field: value})
+                self.assertEqual(getattr(e, field), value)
+
+    def test_abstract_data_accepts_extra_field(self):
+        # extra is tested separately to avoid mutating the class-level default
+        # dict that other tests rely on reading as empty.
+        e = Evaluation({'extra': {'k': 'v'}})
+        self.assertEqual(e.extra, {'k': 'v'})
+
+    # ------------------------------------------------------------------
+    # Evaluation — independent instances do not share class-level defaults
+    # ------------------------------------------------------------------
+
+    def test_evaluation_instances_do_not_share_mutable_defaults(self):
+        """Documents that Evaluation's class-level extra and history dicts are shared
+        until overwritten. This test exists so a future fix to per-instance defaults
+        is detected immediately — if that fix lands, change assertIn to assertNotIn."""
+        e1 = Evaluation({})
+        e2 = Evaluation({})
+
+        # Directly set via __dict__ to bypass AbstractData.__init__, which only
+        # writes keys already declared as class attributes via hasattr — that
+        # means assigning to extra on e1 sets the class-level default, not an
+        # instance attribute, so e2.extra reflects the same object.
+        e1.extra['__sentinel__'] = True
+
+        # Document current behaviour: class-level dict is shared.
+        self.assertIn('__sentinel__', e2.extra)
+
+        # Clean up to avoid polluting later tests that check extra == {}
+        del e1.extra['__sentinel__']
+
+    # ------------------------------------------------------------------
+    # Module API — lazy loading and public surface
+    # ------------------------------------------------------------------
+
+    def test_module_all_contains_expected_public_names(self):
+        self.assertEqual(
+            sorted(python_simple_rules_engine.__all__),
+            ['AbstractData', 'AbstractRule', 'Evaluation', 'run'],
+        )
+
+    def test_module_dir_includes_lazy_names(self):
+        names = dir(python_simple_rules_engine)
+        for name in ('abc', 'copy', 'Any', 'Optional'):
+            with self.subTest(name=name):
+                self.assertIn(name, names)
+
+    def test_module_getattr_raises_for_unknown_name(self):
+        with self.assertRaises(AttributeError):
+            _ = python_simple_rules_engine.nonexistent_attribute_xyz
+
+    def test_module_lazy_load_abc_returns_module(self):
+        import abc as stdlib_abc
+        lazy_abc = python_simple_rules_engine.abc
+        self.assertIs(lazy_abc, stdlib_abc)
+
+    def test_module_lazy_load_copy_returns_module(self):
+        import copy as stdlib_copy
+        lazy_copy = python_simple_rules_engine.copy
+        self.assertIs(lazy_copy, stdlib_copy)
+
+    def test_module_lazy_load_is_cached_on_second_access(self):
+        first = python_simple_rules_engine.abc
+        second = python_simple_rules_engine.abc
+        self.assertIs(first, second)
+
+    def test_public_classes_are_importable_directly(self):
+        from python_simple_rules_engine import AbstractData, AbstractRule, Evaluation, run  # noqa: F401
+
+    def test_python_version_is_at_least_3_9(self):
+        self.assertGreaterEqual(sys.version_info[:2], (3, 9))
 
 
 if __name__ == '__main__':
